@@ -517,6 +517,38 @@ function fireBossBarrage() {
   }
 }
 
+function fireBossLaserSweep() {
+  const speed = 5 + level * 0.35;
+  const bottomY = boss.y + boss.height;
+  const startX = boss.x + 12;
+  const endX = boss.x + boss.width - 12;
+  const count = 10;
+  const sweepDir = Math.random() < 0.5 ? -1 : 1;
+  for (let i = 0; i < count; i++) {
+    const t = count === 1 ? 0 : i / (count - 1);
+    const x = sweepDir === -1
+      ? endX - (endX - startX) * t
+      : startX + (endX - startX) * t;
+    const vx = sweepDir * (0.6 + t * 1.6);
+    spawnBossBullet(x, bottomY, vx, speed);
+  }
+}
+
+function fireBossPulse() {
+  const cx = boss.x + boss.width / 2;
+  const cy = boss.y + boss.height / 2;
+  const speed = 4.4 + level * 0.3;
+  const count = 10;
+  const spread = Math.PI * 0.9;
+  const startAngle = Math.PI / 2 - spread / 2;
+  for (let i = 0; i < count; i++) {
+    const angle = startAngle + (spread * i) / (count - 1);
+    const vx = Math.cos(angle) * speed;
+    const vy = Math.sin(angle) * speed;
+    spawnBossBullet(cx, cy, vx, vy);
+  }
+}
+
 function executeBossPattern(pattern) {
   if (!boss || !boss.alive) return;
   if (pattern === "straight") fireBossStraight();
@@ -525,6 +557,8 @@ function executeBossPattern(pattern) {
   else if (pattern === "aimed") fireBossAimed();
   else if (pattern === "rain") fireBossRain();
   else if (pattern === "barrage") fireBossBarrage();
+  else if (pattern === "laser") fireBossLaserSweep();
+  else if (pattern === "pulse") fireBossPulse();
 }
 
 function bossTryShoot(now) {
@@ -558,15 +592,20 @@ function bossTryShoot(now) {
     pattern = "straight";
     delayBase = 900;
   } else if (hpRatio > 0.33) {
-    pattern = Math.random() < 0.5 ? "straight" : "spread";
+    const midRoll = Math.random();
+    if (midRoll < 0.4) pattern = "straight";
+    else if (midRoll < 0.75) pattern = "spread";
+    else pattern = "laser";
     delayBase = 750;
   } else {
     const roll = Math.random();
-    if (roll < 0.25) pattern = "aimed";
-    else if (roll < 0.5) pattern = "wide";
-    else if (roll < 0.75) pattern = "rain";
-    else pattern = "barrage";
-    delayBase = 650;
+    if (roll < 0.2) pattern = "aimed";
+    else if (roll < 0.4) pattern = "wide";
+    else if (roll < 0.6) pattern = "rain";
+    else if (roll < 0.75) pattern = "barrage";
+    else if (roll < 0.9) pattern = "laser";
+    else pattern = "pulse";
+    delayBase = 640;
   }
 
   const telegraphDuration = 450; // ms the warning is visible before firing
@@ -870,6 +909,33 @@ function drawBossTelegraph() {
       ctx.beginPath();
       ctx.moveTo(lx, bottomY);
       ctx.lineTo(lx + (Math.random() * 60 - 30), HEIGHT - 40);
+      ctx.stroke();
+    }
+  } else if (pattern === "laser") {
+    const bottomY = y + h;
+    const startX = x + 12;
+    const endX = x + w - 12;
+    const count = 5;
+    for (let i = 0; i < count; i++) {
+      const t = count === 1 ? 0 : i / (count - 1);
+      const lx = startX + (endX - startX) * t;
+      ctx.beginPath();
+      ctx.moveTo(lx, bottomY);
+      ctx.lineTo(lx + (t - 0.5) * 160, HEIGHT - 40);
+      ctx.stroke();
+    }
+  } else if (pattern === "pulse") {
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+    const count = 8;
+    const spread = Math.PI * 0.9;
+    const startAngle = Math.PI / 2 - spread / 2;
+    for (let i = 0; i < count; i++) {
+      const angle = startAngle + (spread * i) / (count - 1);
+      const length = 180;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(angle) * length, cy + Math.sin(angle) * length);
       ctx.stroke();
     }
   }
